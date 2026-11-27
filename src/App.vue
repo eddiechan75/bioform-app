@@ -431,8 +431,9 @@ function memberSince(value) {
             <p class="card-eyebrow">DEVICE SECURITY</p>
             <h2>Biometric unlock</h2>
             <p>
-              Optional device unlock using Android fingerprint or screen lock,
-              Windows Hello, Touch ID, or a supported Linux/FIDO2 authenticator.
+              Optional browser passkeys using Android screen lock or fingerprint,
+              or iOS Safari Face ID, Touch ID, or device passcode. Desktop
+              authenticators are supported too.
             </p>
           </div>
           <span v-if="biometricEnabledForUser" class="profile-label">
@@ -451,9 +452,9 @@ function memberSince(value) {
           class="security-note"
           role="status"
         >
-          Bioform can't access a compatible device authenticator right now. If
-          you're using Android Chrome, use HTTPS and configure a fingerprint or
-          screen lock.
+          Bioform can't access a compatible device authenticator right now.
+          Android Chrome and iOS Safari require HTTPS and a configured device
+          screen lock or passkey provider.
           Password sign-in remains available.
         </p>
         <p v-if="biometricReservedForAnotherUser" class="security-note">

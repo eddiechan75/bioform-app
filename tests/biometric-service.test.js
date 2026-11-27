@@ -198,3 +198,20 @@ test("Android browser enrollment is restored after reload and unlocks through We
   assert.equal(await reloadedService.isAvailable(), true);
   assert.equal(await reloadedService.unlock(), user.id);
 });
+
+test("iOS Safari enrollment is restored after reload and unlocks through WebAuthn", async () => {
+  const { biometric, createService } = setup({
+    native: false,
+    webPlatform: "ios",
+  });
+  const user = { id: "user-1", email: "one@example.test", fullName: "User One" };
+
+  await biometric.getEnrollment();
+  assert.equal(await biometric.isAvailable(), true);
+  await biometric.enable(user);
+
+  const reloadedService = createService();
+  assert.equal((await reloadedService.getEnrollment()).platform, "webauthn");
+  assert.equal(await reloadedService.isAvailable(), true);
+  assert.equal(await reloadedService.unlock(), user.id);
+});

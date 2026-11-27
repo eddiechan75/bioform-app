@@ -112,7 +112,7 @@ export function createDesktopWebAuthn({
 
     if (platform === "linux") return true;
     if (
-      ["android", "windows", "macos"].includes(platform) &&
+      ["android", "ios", "windows", "macos"].includes(platform) &&
       typeof publicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable ===
         "function"
     ) {
@@ -137,7 +137,7 @@ export function createDesktopWebAuthn({
           { type: "public-key", alg: -257 },
         ],
         authenticatorSelection: {
-          ...(platform === "android"
+          ...(["android", "ios"].includes(platform)
             ? { authenticatorAttachment: "platform" }
             : {}),
           userVerification: "required",

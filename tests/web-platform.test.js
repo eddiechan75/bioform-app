@@ -20,7 +20,7 @@ test("detects Android browsers through modern and legacy user agents", () => {
   );
 });
 
-test("retains desktop detection and excludes iPad-style Mac platform reporting", () => {
+test("retains desktop and detects iPad-style Mac platform reporting", () => {
   assert.equal(
     detectWebPlatform({ navigatorPlatform: "Win32" }),
     "windows",
@@ -31,7 +31,24 @@ test("retains desktop detection and excludes iPad-style Mac platform reporting",
   );
   assert.equal(
     detectWebPlatform({ navigatorPlatform: "MacIntel", maxTouchPoints: 5 }),
-    null,
+    "ios",
   );
-  assert.equal(detectWebPlatform({ navigatorPlatform: "iPhone" }), null);
+});
+
+test("detects iOS Safari and iPadOS desktop user agents", () => {
+  assert.equal(
+    detectWebPlatform({
+      userAgentDataPlatform: "iOS",
+      navigatorPlatform: "iPhone",
+      userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)",
+    }),
+    "ios",
+  );
+  assert.equal(
+    detectWebPlatform({
+      navigatorPlatform: "iPad",
+      userAgent: "Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X)",
+    }),
+    "ios",
+  );
 });

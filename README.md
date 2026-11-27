@@ -32,11 +32,12 @@ After password registration or sign-in, supported packaged mobile apps can
 opt in to biometric unlock. Capacitor stores a random resumable credential in
 the iOS Keychain or Android Keystore and requires fresh OS authentication for
 each read. Supported browsers use WebAuthn in a secure context: Android's
-platform authenticator (fingerprint, face, or screen lock), Windows Hello,
-macOS Touch ID, or a supported Linux platform authenticator/FIDO2 key signs a
-fresh challenge that Bioform verifies locally. Only public enrollment metadata
-is stored in app preferences; the browser or authenticator holds the private
-key.
+platform authenticator (fingerprint, face, or screen lock), or iOS Safari's
+passkey prompt (Face ID, Touch ID, or device passcode). Windows Hello, macOS
+Touch ID, or supported Linux platform/FIDO2 authenticators are also available.
+The browser signs a fresh challenge that Bioform verifies locally. Only public
+enrollment metadata is stored in app preferences; the browser or authenticator
+holds the private key.
 
 Password sign-in remains available for enrollment, fallback, and password
 re-authentication to disable unlock. Turning off WebAuthn unlock removes
@@ -47,8 +48,10 @@ desktop environment, browser, and hardware; availability is confirmed by
 actual WebAuthn operations, not simulated.
 
 Browser unlock requires WebAuthn support and a secure origin (`localhost` or
-HTTPS). Android Chrome uses the platform authenticator when available; if not
-detected, configure a device screen lock or use password sign-in. Run
+HTTPS). Android Chrome and recent iOS Safari use the browser's platform
+authenticator when available; otherwise password sign-in remains available.
+In Safari this is a WebAuthn passkey flow, not native-app Face ID access.
+Passkey sync is controlled by the browser or credential provider. Run
 `npm run cap:sync` to build and sync the web app and Capacitor plugins to the
 generated iOS/Android projects. Native platform builds still require their
 platform toolchains (Xcode on macOS for iOS and Java 21/Android tooling for

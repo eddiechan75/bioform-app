@@ -262,3 +262,28 @@ test("Android WebAuthn requires the platform authenticator and user verification
   });
   assert.equal(await unsupportedAndroid.isAvailable(), false);
 });
+
+test("iOS Safari uses a verified platform passkey when the authenticator is available", async () => {
+  const fake = await createFakeWebAuthn();
+  const safari = createDesktopWebAuthn({
+    ...fake,
+    cryptoApi: webcrypto,
+    origin,
+    rpId,
+    secureContext: true,
+    platform: "ios",
+  });
+  const user = {
+    id: "local-user-ios",
+    email: "ios@example.test",
+    fullName: "iOS User",
+  };
+
+  assert.equal(await safari.isAvailable(), true);
+  const enrollment = await safari.register(user);
+  assert.equal(
+    fake.observedRegistration().authenticatorSelection.authenticatorAttachment,
+    "platform",
+  );
+  assert.equal(await safari.authenticate(enrollment), user.id);
+});

@@ -3,7 +3,7 @@
 ## Goal
 
 Add an optional device-local unlock for the packaged iOS and Android app and
-supported Android, Windows, macOS, and Linux browsers. Face ID, Touch ID,
+supported Android, iOS, Windows, macOS, and Linux browsers. Face ID, Touch ID,
 Android screen-lock verification, Windows Hello, or an available Linux
 fingerprint/FIDO2 authenticator should make returning to this app easier
 without replacing password authentication.
@@ -25,7 +25,8 @@ authentication feature.
 - Keep email/password registration and login as the initial account enrollment
   and the always-available recovery/fallback path.
 - Let a signed-in user explicitly opt in to device-local unlock on a supported
-  packaged iOS/Android app or a supported Android/Windows/macOS/Linux browser.
+  packaged iOS/Android app or a supported Android/iOS/Windows/macOS/Linux
+  browser.
 - On a later launch, offer unlock and restore the local profile only after a
   successful native biometric check or a locally verified WebAuthn assertion.
 - Provide a password-based way to disable the feature and remove its
@@ -66,7 +67,7 @@ authentication feature.
    error, do not treat the user as authenticated. Show password login and a
    clear retry or recovery path.
 
-### Desktop enrollment and unlock
+### Browser enrollment and unlock
 
 1. On a supported browser OS and secure origin, let the signed-in user
    opt in. Request a WebAuthn credential with user verification required and
@@ -123,7 +124,7 @@ flowchart TD
     B -- No / unsupported --> G[Password registration / login]
     B -- Yes --> C{Runtime}
     C -- Packaged iOS / Android --> D[OS biometric prompt releases protected credential]
-    C -- Android browser / Windows / macOS / Linux --> E[WebAuthn platform authenticator or FIDO2 assertion]
+    C -- Android / iOS browser / Windows / macOS / Linux --> E[WebAuthn platform authenticator or FIDO2 assertion]
     D -- Success --> F[Home - restore local profile]
     D -- Cancel / unavailable / error --> G
     E -- Signature verified --> F
@@ -149,7 +150,7 @@ flowchart TD
   WebAuthn UI in the OS/browser rather than collecting biometrics in the app.
 - **Platform boundary:** Introduce a small authentication adapter with
   capability detection and operations for enroll, unlock, and disable. Browser
-  unlock uses WebAuthn for supported Android, Windows, macOS, and Linux
+  unlock uses WebAuthn for supported Android, iOS, Windows, macOS, and Linux
   authenticators in a secure context; other browsers continue to use password
   login.
 - **Native shell:** Package with Capacitor for iOS and Android. Use an actively
@@ -160,8 +161,9 @@ flowchart TD
   window, so each read requires fresh authentication.
 - **Browser:** Use WebAuthn in a secure context, relying on the
   platform authenticator for Windows Hello/macOS Touch ID and the browser's
-  WebAuthn implementation for Android platform authenticators, Linux platform
-  authenticators, or FIDO2 keys.
+  WebAuthn implementation for Android/iOS platform authenticators, Linux
+  platform authenticators, or FIDO2 keys. In iOS Safari this is the web passkey
+  prompt, not native-app Face ID access.
   Verify assertions locally with Web Crypto; do not claim support if the
   browser API or secure context is unavailable.
 - **Secure credential:** On mobile, generate a random device-local resumable
@@ -207,8 +209,8 @@ flowchart TD
 
 ## Assumptions and decisions
 
-- Packaged mobile builds use Capacitor; Android browser unlock uses WebAuthn.
-  Browser support also covers Windows/macOS/Linux in a secure context.
+- Packaged mobile builds use Capacitor; Android and iOS browser unlock use
+  WebAuthn. Browser support also covers Windows/macOS/Linux in a secure context.
 - Password authentication remains the primary initial enrollment and fallback
   mechanism.
 - Biometric unlock restores only a local app session/profile. There is no
@@ -226,12 +228,16 @@ flowchart TD
 
 - Add Capacitor packaging for iOS and Android, then verify the app builds and
   launches on both targets.
-- Verify Android browser and desktop platform-authenticator detection and WebAuthn
-  browser support. Treat Linux sensor/FIDO2 availability as environment-
-  dependent and verify with actual enrollment, not a simulated result.
+- Verify Android/iOS browser and desktop platform-authenticator detection and
+  WebAuthn browser support. Treat Linux sensor/FIDO2 availability as
+  environment-dependent and verify with actual enrollment, not a simulated
+  result.
 - On Android Chrome, confirm the home-page security link is discoverable and
   enrollment uses a platform authenticator over HTTPS; verify password fallback
   when the browser reports no enrolled screen lock/authenticator.
+- On iOS Safari, verify WebAuthn/passkey availability on a supported OS and
+  HTTPS origin; the browser presents Face ID/Touch ID/passcode verification,
+  not the native-app Face ID API.
 - Evaluate candidate plugins against Keychain/Keystore protection, biometric
   set changes, device passcode fallback, cancellation/lockout reporting,
   minimum OS versions, and maintenance status.
