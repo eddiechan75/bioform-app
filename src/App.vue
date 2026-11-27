@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { biometric } from "./biometric.js";
+import { biometric, biometricPlatform } from "./biometric.js";
 import { getBiometricEnableErrorMessage } from "./biometric-errors.js";
 import { getDatabase, getUserById, loginUser, registerUser } from "./db.js";
 
@@ -448,13 +448,34 @@ function memberSince(value) {
           {{ securityMessage }}
         </p>
         <p
-          v-if="!biometricSupported && !biometricEnabledForUser && !biometricReservedForAnotherUser"
+          v-if="!biometricSupported && !biometricEnabledForUser && !biometricReservedForAnotherUser && biometricPlatform === 'android'"
           class="security-note"
           role="status"
         >
-          Bioform can't access a compatible device authenticator right now.
-          Android Chrome and iOS Safari require HTTPS and a configured device
-          screen lock or passkey provider.
+          Android Chrome did not report an available platform authenticator.
+          Open Bioform directly in Chrome over HTTPS, then check that a screen
+          lock is configured in Android Settings. Embedded browsers and some
+          device configurations may not expose this capability. Password sign-in
+          remains available.
+        </p>
+        <p
+          v-else-if="!biometricSupported && !biometricEnabledForUser && !biometricReservedForAnotherUser && biometricPlatform === 'ios'"
+          class="security-note"
+          role="status"
+        >
+          Safari did not report an available platform authenticator. Open
+          Bioform directly in Safari over HTTPS, confirm an iPhone/iPad passcode
+          is set, and check that Face ID or Touch ID is configured. If it remains
+          unavailable, check your passkey settings/provider. Password sign-in
+          remains available.
+        </p>
+        <p
+          v-else-if="!biometricSupported && !biometricEnabledForUser && !biometricReservedForAnotherUser"
+          class="security-note"
+          role="status"
+        >
+          Bioform couldn't confirm a compatible authenticator. WebAuthn requires
+          a supported browser, HTTPS, and an available platform authenticator.
           Password sign-in remains available.
         </p>
         <p v-if="biometricReservedForAnotherUser" class="security-note">
