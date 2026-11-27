@@ -3,16 +3,19 @@
 ## Goal
 
 Add an optional device-local unlock for the packaged iOS and Android app and
-supported Windows, macOS, and Linux desktop browsers. Face ID, Touch ID,
-Windows Hello, or an available Linux fingerprint/FIDO2 authenticator should
-make returning to this app easier without replacing password authentication.
+supported Android, Windows, macOS, and Linux browsers. Face ID, Touch ID,
+Android screen-lock verification, Windows Hello, or an available Linux
+fingerprint/FIDO2 authenticator should make returning to this app easier
+without replacing password authentication.
 
 This is a **device-local app unlock**, not proof of identity to a server. The
-current app is a Vue 3 single-page app with SQL.js persisted in browser
-`localStorage`; it has no Capacitor runtime, native biometric integration, or
-backend authentication. Mobile uses Capacitor and an OS-protected credential.
-Desktop uses WebAuthn in a secure browser context: the OS authenticator or
-FIDO2 key holds the private key, while the app verifies each assertion locally.
+current Vue 3 single-page app persists SQL.js in browser `localStorage` and has
+no backend authentication. Packaged mobile apps use Capacitor and an
+OS-protected credential. Browsers use WebAuthn in a secure context: the OS
+authenticator or FIDO2 key holds the private key, while the app verifies each
+assertion locally. Android browser enrollment requests a platform
+authenticator. The credential provider may sync passkeys according to its own
+settings; Bioform still restores only the browser's local profile.
 A production backend and cross-device identity are out of scope. If those
 become requirements, evaluate backend-verified passkeys as a separate
 authentication feature.
@@ -22,12 +25,12 @@ authentication feature.
 - Keep email/password registration and login as the initial account enrollment
   and the always-available recovery/fallback path.
 - Let a signed-in user explicitly opt in to device-local unlock on a supported
-  packaged iOS/Android app or Windows/macOS/Linux desktop browser.
+  packaged iOS/Android app or a supported Android/Windows/macOS/Linux browser.
 - On a later launch, offer unlock and restore the local profile only after a
   successful native biometric check or a locally verified WebAuthn assertion.
 - Provide a password-based way to disable the feature and remove its
   device-local credential.
-- Require a secure browser context and WebAuthn for desktop. Browsers without
+- Require a secure browser context and WebAuthn for browser unlock. Browsers without
   the API, supported OS, or secure origin continue to use password login.
 - Linux sensor support varies by distribution, desktop environment, browser,
   and hardware; offer the real WebAuthn flow for available platform
@@ -65,11 +68,12 @@ authentication feature.
 
 ### Desktop enrollment and unlock
 
-1. On a supported desktop OS and secure browser origin, let the signed-in user
+1. On a supported browser OS and secure origin, let the signed-in user
    opt in. Request a WebAuthn credential with user verification required and
    no attestation collection. The browser presents the actual OS platform
-   authenticator (for example Windows Hello or Touch ID) or a compatible
-   FIDO2 authenticator.
+   authenticator (for example Android screen lock, Windows Hello, or Touch ID)
+   or a compatible FIDO2 authenticator. Android requests a platform
+   authenticator specifically.
 2. Verify the registration challenge, origin, relying-party ID, and
    user-verification flags. Store only the credential ID and public key
    metadata in app preferences; the private key remains with the OS or
@@ -118,8 +122,8 @@ flowchart TD
     A[App launch] --> B{Enrollment exists?}
     B -- No / unsupported --> G[Password registration / login]
     B -- Yes --> C{Runtime}
-    C -- iOS / Android --> D[OS biometric prompt releases protected credential]
-    C -- Windows / macOS / Linux --> E[WebAuthn OS authenticator or FIDO2 assertion]
+    C -- Packaged iOS / Android --> D[OS biometric prompt releases protected credential]
+    C -- Android browser / Windows / macOS / Linux --> E[WebAuthn platform authenticator or FIDO2 assertion]
     D -- Success --> F[Home - restore local profile]
     D -- Cancel / unavailable / error --> G
     E -- Signature verified --> F
@@ -144,18 +148,20 @@ flowchart TD
   states to the existing auth and account flows. Keep native prompts and
   WebAuthn UI in the OS/browser rather than collecting biometrics in the app.
 - **Platform boundary:** Introduce a small authentication adapter with
-  capability detection and operations for enroll, unlock, and disable. Web
-  uses WebAuthn only for supported desktop operating systems in a secure
-  context; other browsers continue to use password login.
+  capability detection and operations for enroll, unlock, and disable. Browser
+  unlock uses WebAuthn for supported Android, Windows, macOS, and Linux
+  authenticators in a secure context; other browsers continue to use password
+  login.
 - **Native shell:** Package with Capacitor for iOS and Android. Use an actively
   maintained Capacitor plugin that provides biometric-protected Keychain /
   Keystore credentials and cryptographically gated reads. The implementation
   uses `@capgo/capacitor-native-biometric` with
   `AccessControl.BIOMETRY_CURRENT_SET` and a zero-second Android auth-validity
   window, so each read requires fresh authentication.
-- **Desktop:** Use WebAuthn in a secure browser context, relying on the
+- **Browser:** Use WebAuthn in a secure context, relying on the
   platform authenticator for Windows Hello/macOS Touch ID and the browser's
-  WebAuthn implementation for Linux platform authenticators or FIDO2 keys.
+  WebAuthn implementation for Android platform authenticators, Linux platform
+  authenticators, or FIDO2 keys.
   Verify assertions locally with Web Crypto; do not claim support if the
   browser API or secure context is unavailable.
 - **Secure credential:** On mobile, generate a random device-local resumable
@@ -201,19 +207,18 @@ flowchart TD
 
 ## Assumptions and decisions
 
-- Mobile builds use Capacitor. Desktop support uses Windows/macOS/Linux
-  browsers with a secure WebAuthn context; standalone desktop packaging is not
-  required for the initial implementation.
+- Packaged mobile builds use Capacitor; Android browser unlock uses WebAuthn.
+  Browser support also covers Windows/macOS/Linux in a secure context.
 - Password authentication remains the primary initial enrollment and fallback
   mechanism.
 - Biometric unlock restores only a local app session/profile. There is no
   server to exchange a token with, revoke sessions on another device, or
   validate a passkey.
-- Keychain/Keystore-protected mobile credentials and desktop authenticator
-  private keys are separate from SQL.js database contents.
-- Product and platform review will confirm the exact plugin, supported
-  biometric classes, fallback-to-device-passcode policy, and whether sign-out
-  preserves opt-in enrollment before implementation begins.
+- Keychain/Keystore-protected app credentials and browser authenticator private
+  keys are separate from SQL.js database contents.
+- WebAuthn user verification is controlled by the OS/authenticator and may use
+  its configured device PIN/passcode, not only a fingerprint. Passkey syncing
+  is controlled by the browser or credential provider.
 
 ## Phased implementation and verification
 
@@ -221,9 +226,12 @@ flowchart TD
 
 - Add Capacitor packaging for iOS and Android, then verify the app builds and
   launches on both targets.
-- Verify desktop Windows/macOS platform-authenticator detection and WebAuthn
+- Verify Android browser and desktop platform-authenticator detection and WebAuthn
   browser support. Treat Linux sensor/FIDO2 availability as environment-
   dependent and verify with actual enrollment, not a simulated result.
+- On Android Chrome, confirm the home-page security link is discoverable and
+  enrollment uses a platform authenticator over HTTPS; verify password fallback
+  when the browser reports no enrolled screen lock/authenticator.
 - Evaluate candidate plugins against Keychain/Keystore protection, biometric
   set changes, device passcode fallback, cancellation/lockout reporting,
   minimum OS versions, and maintenance status.

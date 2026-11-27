@@ -53,6 +53,7 @@ function clientData(type, challenge) {
 async function createFakeWebAuthn({
   registrationFlags = 0x05,
   tamperSignature = false,
+  platformAuthenticatorAvailable = true,
 } = {}) {
   const keyPair = await webcrypto.subtle.generateKey(
     { name: "ECDSA", namedCurve: "P-256" },
@@ -63,8 +64,10 @@ async function createFakeWebAuthn({
     await webcrypto.subtle.exportKey("spki", keyPair.publicKey),
   );
   let observedAssertion = null;
+  let observedRegistration = null;
   const credentials = {
     async create({ publicKey: options }) {
+      observedRegistration = options;
       const authenticator = await authenticatorData(registrationFlags);
       return {
         type: "public-key",
@@ -114,10 +117,11 @@ async function createFakeWebAuthn({
     credentials,
     publicKeyCredential: {
       async isUserVerifyingPlatformAuthenticatorAvailable() {
-        return true;
+        return platformAuthenticatorAvailable;
       },
     },
     observedAssertion: () => observedAssertion,
+    observedRegistration: () => observedRegistration,
   };
 }
 
@@ -129,7 +133,7 @@ test("desktop WebAuthn enrollment and unlock verify a fresh local assertion", as
     origin,
     rpId,
     secureContext: true,
-    desktopPlatform: "windows",
+    platform: "windows",
   });
   const user = {
     id: "local-user-1",
@@ -153,7 +157,7 @@ test("desktop WebAuthn requires a secure context and verified user-presence flag
     origin: "http://example.test",
     rpId,
     secureContext: false,
-    desktopPlatform: "windows",
+    platform: "windows",
   });
   assert.equal(await insecure.isAvailable(), false);
 
@@ -163,7 +167,7 @@ test("desktop WebAuthn requires a secure context and verified user-presence flag
     origin,
     rpId,
     secureContext: true,
-    desktopPlatform: "windows",
+    platform: "windows",
   });
   await assert.rejects(
     desktop.register({
@@ -183,7 +187,7 @@ test("Linux support requires a secure WebAuthn-capable browser but permits exter
     origin,
     rpId,
     secureContext: true,
-    desktopPlatform: "linux",
+    platform: "linux",
   });
   assert.equal(await linux.isAvailable(), true);
 
@@ -193,7 +197,7 @@ test("Linux support requires a secure WebAuthn-capable browser but permits exter
     origin: "http://bioform.example",
     rpId,
     secureContext: false,
-    desktopPlatform: "linux",
+    platform: "linux",
   });
   assert.equal(await insecure.isAvailable(), false);
 });
@@ -206,7 +210,7 @@ test("desktop WebAuthn rejects tampered authenticator signatures", async () => {
     origin,
     rpId,
     secureContext: true,
-    desktopPlatform: "windows",
+    platform: "windows",
   });
   const enrollment = await desktop.register({
     id: "local-user-1",
@@ -215,4 +219,46 @@ test("desktop WebAuthn rejects tampered authenticator signatures", async () => {
   });
 
   await assert.rejects(desktop.authenticate(enrollment), /signature did not match/);
+});
+
+test("Android WebAuthn requires the platform authenticator and user verification", async () => {
+  const fake = await createFakeWebAuthn();
+  const android = createDesktopWebAuthn({
+    ...fake,
+    cryptoApi: webcrypto,
+    origin,
+    rpId,
+    secureContext: true,
+    platform: "android",
+  });
+  const user = {
+    id: "local-user-android",
+    email: "android@example.test",
+    fullName: "Android User",
+  };
+
+  assert.equal(await android.isAvailable(), true);
+  const enrollment = await android.register(user);
+  assert.equal(
+    fake.observedRegistration().authenticatorSelection.authenticatorAttachment,
+    "platform",
+  );
+  assert.equal(
+    fake.observedRegistration().authenticatorSelection.userVerification,
+    "required",
+  );
+  assert.equal(await android.authenticate(enrollment), user.id);
+
+  const unsupportedFake = await createFakeWebAuthn({
+    platformAuthenticatorAvailable: false,
+  });
+  const unsupportedAndroid = createDesktopWebAuthn({
+    ...unsupportedFake,
+    cryptoApi: webcrypto,
+    origin,
+    rpId,
+    secureContext: true,
+    platform: "android",
+  });
+  assert.equal(await unsupportedAndroid.isAvailable(), false);
 });

@@ -96,7 +96,7 @@ export function createDesktopWebAuthn({
   origin,
   rpId,
   secureContext,
-  desktopPlatform,
+  platform,
 }) {
   async function isAvailable() {
     if (
@@ -110,9 +110,9 @@ export function createDesktopWebAuthn({
       return false;
     }
 
-    if (desktopPlatform === "linux") return true;
+    if (platform === "linux") return true;
     if (
-      (desktopPlatform === "windows" || desktopPlatform === "macos") &&
+      ["android", "windows", "macos"].includes(platform) &&
       typeof publicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable ===
         "function"
     ) {
@@ -136,7 +136,12 @@ export function createDesktopWebAuthn({
           { type: "public-key", alg: -7 },
           { type: "public-key", alg: -257 },
         ],
-        authenticatorSelection: { userVerification: "required" },
+        authenticatorSelection: {
+          ...(platform === "android"
+            ? { authenticatorAttachment: "platform" }
+            : {}),
+          userVerification: "required",
+        },
         attestation: "none",
         timeout: 60_000,
       },

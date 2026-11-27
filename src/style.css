@@ -486,6 +486,19 @@ p {
   font-size: 13px;
 }
 
+.security-jump {
+  display: inline-flex;
+  margin-top: 9px;
+  color: #557a60;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.security-jump:hover {
+  text-decoration: underline;
+}
+
 .signout-button {
   display: inline-flex;
   align-items: center;

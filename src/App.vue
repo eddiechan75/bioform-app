@@ -385,6 +385,7 @@ function memberSince(value) {
           <p class="form-kicker">YOUR SPACE</p>
           <h1>Good to see you, <span>{{ currentUser.fullName.split(" ")[0] }}.</span></h1>
           <p class="home-subtitle">A little check-in with your health profile.</p>
+          <a class="security-jump" href="#device-security">Set up device unlock</a>
         </div>
         <button class="signout-button" type="button" @click="signOut">
           <span class="signout-icon" aria-hidden="true">↗</span>
@@ -424,14 +425,14 @@ function memberSince(value) {
         </article>
       </div>
 
-      <section v-if="biometricSupported" class="security-card">
+      <section id="device-security" class="security-card">
         <div class="security-heading">
           <div>
             <p class="card-eyebrow">DEVICE SECURITY</p>
             <h2>Biometric unlock</h2>
             <p>
-              Optional, device-local access with Windows Hello, Touch ID, or a
-              compatible Linux fingerprint/FIDO2 authenticator. Availability varies.
+              Optional device unlock using Android fingerprint or screen lock,
+              Windows Hello, Touch ID, or a supported Linux/FIDO2 authenticator.
             </p>
           </div>
           <span v-if="biometricEnabledForUser" class="profile-label">
@@ -444,6 +445,16 @@ function memberSince(value) {
         </p>
         <p v-if="securityMessage" class="notice notice-success" role="status">
           {{ securityMessage }}
+        </p>
+        <p
+          v-if="!biometricSupported && !biometricEnabledForUser && !biometricReservedForAnotherUser"
+          class="security-note"
+          role="status"
+        >
+          Bioform can't access a compatible device authenticator right now. If
+          you're using Android Chrome, use HTTPS and configure a fingerprint or
+          screen lock.
+          Password sign-in remains available.
         </p>
         <p v-if="biometricReservedForAnotherUser" class="security-note">
           Biometric unlock is set up for another local account. Sign in to that account to manage it.
@@ -474,10 +485,10 @@ function memberSince(value) {
             Turn off biometric unlock
           </button>
         </div>
-        <div v-else class="security-actions">
+        <div v-else-if="biometricSupported" class="security-actions">
           <p class="security-note">
-            Uses an OS-protected mobile credential or a locally verified
-            WebAuthn keypair; no private key is stored in the app database.
+            The OS or browser authenticator verifies each unlock. Bioform
+            stores only non-secret enrollment metadata; password sign-in remains available.
           </p>
           <button class="primary-button compact-button" type="button" :disabled="biometricBusy" @click="enableBiometrics">
             {{ biometricBusy ? "Preparing…" : "Enable biometric unlock" }}

@@ -6,15 +6,16 @@ import {
 } from "@capgo/capacitor-native-biometric";
 import { createDesktopWebAuthn } from "./desktop-webauthn.js";
 import { createBiometricService } from "./biometric-service.js";
+import { detectWebPlatform } from "./web-platform.js";
 
-function getDesktopPlatform() {
+function getWebPlatform() {
   if (Capacitor.isNativePlatform()) return null;
-  const platform =
-    navigator.userAgentData?.platform || navigator.platform || navigator.userAgent;
-  if (/^Win/i.test(platform)) return "windows";
-  if (/^Mac/i.test(platform) && navigator.maxTouchPoints <= 1) return "macos";
-  if (/^Linux/i.test(platform)) return "linux";
-  return null;
+  return detectWebPlatform({
+    userAgentDataPlatform: globalThis.navigator?.userAgentData?.platform,
+    navigatorPlatform: globalThis.navigator?.platform,
+    userAgent: globalThis.navigator?.userAgent,
+    maxTouchPoints: globalThis.navigator?.maxTouchPoints,
+  });
 }
 
 const desktopWebAuthn = createDesktopWebAuthn({
@@ -23,14 +24,14 @@ const desktopWebAuthn = createDesktopWebAuthn({
   origin: globalThis.location?.origin ?? "",
   rpId: globalThis.location?.hostname ?? "",
   secureContext: globalThis.isSecureContext === true,
-  desktopPlatform: getDesktopPlatform(),
+  platform: getWebPlatform(),
 });
 
 export const biometric = createBiometricService({
   nativeBiometric: NativeBiometric,
   preferences: Preferences,
   isNativePlatform: () => Capacitor.isNativePlatform(),
-  getDesktopPlatform,
+  getWebPlatform,
   desktopWebAuthn,
   accessControl: AccessControl.BIOMETRY_CURRENT_SET,
 });

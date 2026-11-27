@@ -5,6 +5,7 @@ import { createBiometricService } from "../src/biometric-service.js";
 function setup({
   native = true,
   desktop = false,
+  webPlatform = null,
   available = true,
 } = {}) {
   const values = new Map();
@@ -59,16 +60,18 @@ function setup({
       return enrollment.userId;
     },
   };
-  const biometric = createBiometricService({
-    nativeBiometric,
-    preferences,
-    isNativePlatform: () => native,
-    getDesktopPlatform: () => (desktop ? "windows" : null),
-    desktopWebAuthn,
-    accessControl: 1,
-    cryptoApi: { getRandomValues: (bytes) => bytes.fill(7) },
-  });
-  return { biometric, calls, nativeBiometric, values };
+  function createService() {
+    return createBiometricService({
+      nativeBiometric,
+      preferences,
+      isNativePlatform: () => native,
+      getWebPlatform: () => webPlatform || (desktop ? "windows" : null),
+      desktopWebAuthn,
+      accessControl: 1,
+      cryptoApi: { getRandomValues: (bytes) => bytes.fill(7) },
+    });
+  }
+  return { biometric: createService(), calls, createService, nativeBiometric, values };
 }
 
 test("unsupported web builds do not probe native biometric authentication", async () => {
@@ -168,4 +171,30 @@ test("desktop enrollment is not silently rebound to a different account", async 
     /another account/i,
   );
   assert.equal(values.size, 1);
+});
+
+test("Android browser enrollment is restored after reload and unlocks through WebAuthn", async () => {
+  const { biometric, createService } = setup({
+    native: false,
+    webPlatform: "android",
+  });
+  const user = { id: "user-1", email: "one@example.test", fullName: "User One" };
+
+  await biometric.getEnrollment();
+  assert.equal(await biometric.isAvailable(), true);
+  await biometric.enable(user);
+
+  const reloadedService = createService();
+  assert.deepEqual(await reloadedService.getEnrollment(), {
+    platform: "webauthn",
+    version: 1,
+    userId: user.id,
+    credentialId: "credential-id",
+    publicKey: "public-key",
+    algorithm: -7,
+    rpId: "localhost",
+    origin: "http://localhost",
+  });
+  assert.equal(await reloadedService.isAvailable(), true);
+  assert.equal(await reloadedService.unlock(), user.id);
 });

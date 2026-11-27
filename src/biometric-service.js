@@ -5,7 +5,7 @@ export function createBiometricService({
   nativeBiometric,
   preferences,
   isNativePlatform,
-  getDesktopPlatform,
+  getWebPlatform,
   desktopWebAuthn,
   accessControl,
   cryptoApi = globalThis.crypto,
@@ -51,7 +51,7 @@ export function createBiometricService({
       );
       return cachedAvailability;
     }
-    if (!getDesktopPlatform()) {
+    if (!getWebPlatform()) {
       cachedAvailability = false;
       return false;
     }
@@ -117,7 +117,7 @@ export function createBiometricService({
       return;
     }
 
-    if (!getDesktopPlatform()) {
+    if (!getWebPlatform()) {
       throw new Error("Biometric unlock is unavailable in this browser.");
     }
     if (!enrollmentLoaded || cachedAvailability !== true) {
@@ -149,7 +149,7 @@ export function createBiometricService({
   async function unlock() {
     if (!isNativePlatform()) {
       if (
-        !getDesktopPlatform() ||
+        !getWebPlatform() ||
         !enrollmentLoaded ||
         cachedEnrollment?.platform !== "webauthn"
       ) {
@@ -187,9 +187,9 @@ export function createBiometricService({
       await nativeBiometric.deleteCredentials({ server: credentialServer });
     } else if (
       enrollment.platform === "webauthn" &&
-      (isNativePlatform() || !getDesktopPlatform())
+      (isNativePlatform() || !getWebPlatform())
     ) {
-      throw new Error("This enrollment must be removed from its desktop browser.");
+      throw new Error("This enrollment must be removed from its browser.");
     }
     await preferences.remove({ key: enrollmentKey });
     cachedEnrollment = null;
