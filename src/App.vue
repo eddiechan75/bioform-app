@@ -1,7 +1,8 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { biometric, biometricPlatform } from "./biometric.js";
+import { biometric } from "./biometric.js";
 import { getBiometricEnableErrorMessage } from "./biometric-errors.js";
+import { getBiometricUnavailableMessage } from "./biometric-guidance.js";
 import { getDatabase, getUserById, loginUser, registerUser } from "./db.js";
 
 const mode = ref("login");
@@ -28,6 +29,13 @@ const biometricReservedForAnotherUser = computed(
     currentUser.value &&
     biometricEnrollment.value &&
     biometricEnrollment.value.userId !== currentUser.value.id,
+);
+const biometricUnavailableMessage = computed(() =>
+  getBiometricUnavailableMessage({
+    isSupported: biometricSupported.value,
+    isEnabled: Boolean(biometricEnabledForUser.value),
+    isReserved: Boolean(biometricReservedForAnotherUser.value),
+  }),
 );
 const form = ref({ fullName: "", email: "", password: "", confirmPassword: "" });
 
@@ -447,36 +455,8 @@ function memberSince(value) {
         <p v-if="securityMessage" class="notice notice-success" role="status">
           {{ securityMessage }}
         </p>
-        <p
-          v-if="!biometricSupported && !biometricEnabledForUser && !biometricReservedForAnotherUser && biometricPlatform === 'android'"
-          class="security-note"
-          role="status"
-        >
-          Android Chrome did not report an available platform authenticator.
-          Open Bioform directly in Chrome over HTTPS, then check that a screen
-          lock is configured in Android Settings. Embedded browsers and some
-          device configurations may not expose this capability. Password sign-in
-          remains available.
-        </p>
-        <p
-          v-else-if="!biometricSupported && !biometricEnabledForUser && !biometricReservedForAnotherUser && biometricPlatform === 'ios'"
-          class="security-note"
-          role="status"
-        >
-          Safari did not report an available platform authenticator. Open
-          Bioform directly in Safari over HTTPS, confirm an iPhone/iPad passcode
-          is set, and check that Face ID or Touch ID is configured. If it remains
-          unavailable, check your passkey settings/provider. Password sign-in
-          remains available.
-        </p>
-        <p
-          v-else-if="!biometricSupported && !biometricEnabledForUser && !biometricReservedForAnotherUser"
-          class="security-note"
-          role="status"
-        >
-          Bioform couldn't confirm a compatible authenticator. WebAuthn requires
-          a supported browser, HTTPS, and an available platform authenticator.
-          Password sign-in remains available.
+        <p v-if="biometricUnavailableMessage" class="security-note" role="status">
+          {{ biometricUnavailableMessage }}
         </p>
         <p v-if="biometricReservedForAnotherUser" class="security-note">
           Biometric unlock is set up for another local account. Sign in to that account to manage it.

@@ -18,15 +18,13 @@ function getWebPlatform() {
   });
 }
 
-export const biometricPlatform = getWebPlatform();
-
 const desktopWebAuthn = createDesktopWebAuthn({
   publicKeyCredential: globalThis.PublicKeyCredential,
   credentials: globalThis.navigator?.credentials,
   origin: globalThis.location?.origin ?? "",
   rpId: globalThis.location?.hostname ?? "",
   secureContext: globalThis.isSecureContext === true,
-  platform: biometricPlatform,
+  platform: getWebPlatform(),
 });
 
 export const biometric = createBiometricService({
