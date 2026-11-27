@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Bioform</string>
+    <string name="title_activity_main">Bioform</string>
+    <string name="package_name">com.bioform.mobile</string>
+    <string name="custom_url_scheme">com.bioform.mobile</string>
+</resources>

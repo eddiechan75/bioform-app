@@ -1,0 +1,28 @@
+{
+  "name": "biometric-mobile-app",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:pages": "npm run build && node scripts/prepare-pages.mjs",
+    "preview": "vite preview",
+    "test": "node --test",
+    "cap:sync": "npm run build && cap sync"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.3",
+    "@capacitor/core": "^8.6.3",
+    "@capacitor/ios": "^8.6.3",
+    "@capacitor/preferences": "^8.0.0",
+    "@capgo/capacitor-native-biometric": "^8.9.3",
+    "sql.js": "^1.13.0",
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.3",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "vite": "^6.0.7"
+  }
+}
